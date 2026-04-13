@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pheeew — Complete Klaviyo Email System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--lime:#DAFF00;--orange:#FF6B35;--bk:#0D0D0D;--wh:#FFFFFF;--cream:#FFFEF5;--limebg:#F5FFB8}
+body{font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;background:#080808;color:#fff;padding:0}
+.header{background:#0a0a0a;border-bottom:1px solid #222;padding:16px 24px;position:sticky;top:0;z-index:100}
+.header h1{font-size:16px;font-weight:800;color:var(--lime)}
+.header p{font-size:9px;color:#555;margin-top:2px}
+.filters{display:flex;gap:3px;flex-wrap:wrap;margin-top:8px}
+.fbtn{padding:4px 9px;border-radius:100px;font-size:7px;font-weight:700;cursor:pointer;border:1px solid #333;color:#555;transition:.12s;letter-spacing:.2px;text-transform:uppercase}
+.fbtn:hover{border-color:var(--lime);color:#fff}
+.fbtn.on{background:var(--lime);color:#0D0D0D;border-color:var(--lime)}
+
+.wrap{max-width:1100px;margin:0 auto;padding:24px}
+.flow{display:none;margin-bottom:32px}.flow.show{display:block}
+.flow-header{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.flow-num{width:36px;height:36px;border-radius:50%;background:var(--lime);color:#0D0D0D;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;flex-shrink:0}
+.flow-title{font-size:16px;font-weight:800}
+.flow-sub{font-size:10px;color:#555}
+.flow-phase{font-size:7px;padding:3px 8px;border-radius:100px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;margin-left:auto}
+.phase-pre{background:rgba(255,107,53,.1);color:#FF6B35;border:1px solid rgba(255,107,53,.2)}
+.phase-launch{background:rgba(218,255,0,.1);color:#DAFF00;border:1px solid rgba(218,255,0,.2)}
+.phase-post{background:rgba(52,152,219,.1);color:#3498db;border:1px solid rgba(52,152,219,.2)}
+.phase-always{background:rgba(155,89,182,.1);color:#9b59b6;border:1px solid rgba(155,89,182,.2)}
+
+.flow-meta{background:#111;border:1px solid #222;border-radius:8px;padding:12px;margin-bottom:12px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px}
+.flow-meta div{text-align:center}
+.flow-meta .label{font-size:7px;color:#555;letter-spacing:1px;text-transform:uppercase}
+.flow-meta .val{font-size:13px;font-weight:700;color:var(--lime);margin-top:2px}
+
+.emails{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+
+/* EMAIL CARD */
+.email{background:#111;border:1px solid #1a1a1a;border-radius:10px;overflow:hidden}
+.em-mock{position:relative;width:100%;aspect-ratio:9/16;max-height:360px;overflow:hidden;display:flex;flex-direction:column;padding:16px 14px}
+.em-mock .em-num{position:absolute;top:6px;left:6px;background:var(--lime);color:#0D0D0D;font-size:7px;font-weight:800;padding:2px 5px;border-radius:3px}
+.em-mock .em-day{position:absolute;top:6px;right:6px;background:rgba(0,0,0,.5);color:#888;font-size:7px;font-weight:600;padding:2px 5px;border-radius:3px}
+
+/* Email visual styles */
+.em-w{background:linear-gradient(180deg,var(--limebg) 0%,#fff 60%,#fff 100%)}
+.em-c{background:linear-gradient(180deg,var(--cream) 0%,#fff 100%)}
+.em-lime{background:linear-gradient(180deg,var(--lime) 0%,#c8ee00 100%);color:#0D0D0D}
+.em-orange{background:linear-gradient(180deg,var(--orange) 0%,#e05a2a 100%);color:#fff}
+.em-d{background:linear-gradient(180deg,#1a1a1a 0%,var(--bk) 100%);color:#fff}
+
+.em-mock .em-brand{font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:14px;letter-spacing:3px;color:var(--lime);font-weight:900;text-align:center;margin-top:16px;text-transform:uppercase}
+.em-mock .em-hero{font-family:'Helvetica Neue',Helvetica,sans-serif;font-size:16px;font-weight:800;line-height:1.25;text-align:center;margin:auto 0;color:var(--bk)}
+.em-mock .em-sub{font-size:8px;text-align:center;opacity:.6;margin-top:6px;line-height:1.5}
+.em-mock .em-cta-lime{background:var(--lime);color:#0D0D0D;padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;text-align:center;margin:8px auto 0;display:inline-block}
+.em-mock .em-cta-orange{background:var(--orange);color:#fff;padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;text-align:center;margin:8px auto 0;display:inline-block}
+.em-mock .em-msg{background:rgba(0,0,0,.03);border-radius:8px;padding:8px;margin:6px 0;text-align:left}
+.em-mock .em-msg-r{background:rgba(218,255,0,.15);border-radius:8px;padding:6px 8px;margin:3px 0 3px 30%;text-align:right;font-size:7px;color:#555}
+.em-mock .em-msg-l{background:rgba(0,0,0,.04);border-radius:8px;padding:6px 8px;margin:3px 30% 3px 0;text-align:left;font-size:7px;color:var(--bk)}
+.em-mock .em-footer{font-size:6px;color:#999;text-align:center;margin-top:auto;padding-top:8px}
+
+.em-info{padding:10px 12px}
+.em-info .em-t{font-size:10px;font-weight:700;color:#fff;margin-bottom:2px}
+.em-info .em-d{font-size:8px;color:#666;line-height:1.5}
+.em-info .em-tags{display:flex;gap:3px;flex-wrap:wrap;margin-top:4px}
+.em-info .tag{font-size:6px;padding:2px 5px;border-radius:100px;font-weight:600;letter-spacing:.2px}
+.t-trigger{background:rgba(218,255,0,.08);color:var(--lime);border:1px solid rgba(218,255,0,.15)}
+.t-goal{background:rgba(52,152,219,.08);color:#3498db;border:1px solid rgba(52,152,219,.15)}
+.t-revenue{background:rgba(255,107,53,.08);color:var(--orange);border:1px solid rgba(255,107,53,.15)}
+
+.connector{text-align:center;padding:4px 0}
+.connector .arrow{color:#333;font-size:14px}
+.connector .wait{font-size:7px;color:#555;background:#111;display:inline-block;padding:2px 8px;border-radius:100px;border:1px solid #222}
+
+/* Stats bar */
+.stats-bar{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:24px;background:#111;border:1px solid #222;border-radius:8px;padding:16px}
+.stat-item{text-align:center}
+.stat-item .stat-val{font-size:24px;font-weight:800;color:var(--lime)}
+.stat-item .stat-label{font-size:8px;color:#555;text-transform:uppercase;letter-spacing:1px;margin-top:2px}
+</style>
+</head>
+<body>
+
+<div class="header">
+<h1>PHEEEW -- COMPLETE KLAVIYO EMAIL SYSTEM</h1>
+<p>14 flows | 42 emails | Visual mockups + A/B subject lines | <span style="color:#FF6B35">PRE-LAUNCH</span> | <span style="color:#DAFF00">LAUNCH</span> | <span style="color:#3498db">POST-LAUNCH</span> | <span style="color:#9b59b6">ALWAYS-ON</span></p>
+<p style="margin-top:2px;color:#444">Brand: Shelf-stable synbiotic smoothie | Voice: Deadpan, honest, warm | "Your Gut Knows." | SKUs: Ginger Pear, Wild Berries, Tropical Punch | @saypheeew</p>
+<div class="filters">
+<div class="fbtn on" onclick="ff('all')">All Flows (14)</div>
+<div class="fbtn" style="border-color:#FF6B35;color:#FF6B35" onclick="ff('pre')">Pre-Launch (3)</div>
+<div class="fbtn" style="border-color:#DAFF00;color:#DAFF00" onclick="ff('launch')">Launch (3)</div>
+<div class="fbtn" style="border-color:#3498db;color:#3498db" onclick="ff('post')">Post-Launch (4)</div>
+<div class="fbtn" style="border-color:#9b59b6;color:#9b59b6" onclick="ff('always')">Always-On (4)</div>
+</div>
+</div>
+
+<div class="wrap">
+
+<!-- SYSTEM OVERVIEW -->
+<div class="stats-bar">
+<div class="stat-item"><div class="stat-val">14</div><div class="stat-label">Flows</div></div>
+<div class="stat-item"><div class="stat-val">42</div><div class="stat-label">Emails</div></div>
+<div class="stat-item"><div class="stat-val">3</div><div class="stat-label">SKUs</div></div>
+<div class="stat-item"><div class="stat-val" style="color:var(--orange)">$0</div><div class="stat-label">Added Sugar</div></div>
+<div class="stat-item"><div class="stat-val">1B</div><div class="stat-label">Probiotics/pouch</div></div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 1: PRE-LAUNCH WELCOME / HYPE -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="pre">
+<div class="flow-header">
+<div class="flow-num">1</div>
+<div><div class="flow-title">Pre-Launch Welcome / Hype</div><div class="flow-sub">Trigger: email signup on waitlist | 8 emails over 35 days | Community building, gut education, "Your Gut Knows" identity, follow @saypheeew</div></div>
+<div class="flow-phase phase-pre">PRE-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Email signup</div></div>
+<div><div class="label">Emails</div><div class="val">8</div></div>
+<div><div class="label">Duration</div><div class="val">35 days</div></div>
+<div><div class="label">Goal</div><div class="val">Community + Identity</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They signed up because something about gut health products feels off -- too clinical, too preachy, too "wellness influencer." They want something real. Your job: make them laugh, make them feel seen, make them trust you. This is a FOOD brand. No supplement language. No health claims. Just good food that happens to be really good for your gut. Sender: "Alex from Pheeew."</p>
+<p style="font-size:9px;color:#666;margin-bottom:6px"><strong style="color:#FF6B35">iMessage CONVERSATION FORMAT.</strong> Deadpan, honest, irreverent. Gut humor welcome. Every email ends with a CTA that is NOT "buy." NO pricing in pre-launch. Build the vibe.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:12px;margin-bottom:12px">
+<p style="font-size:9px;font-weight:700;color:var(--lime);margin-bottom:6px">A/B SUBJECT LINES -- TEST THESE</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:#555;font-weight:700">Email</td><td style="padding:4px;font-weight:700;color:#555">Version A (deadpan)</td><td style="padding:4px;font-weight:700;color:#555">Version B (curiosity)</td><td style="padding:4px;font-weight:700;color:#555">Version C (gut humor)</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">1</td><td style="padding:4px">Good food. Better poops.</td><td style="padding:4px">You signed up for a smoothie waitlist.</td><td style="padding:4px">Your gut just made a great decision.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">2</td><td style="padding:4px">What's actually in a "gut health" drink?</td><td style="padding:4px">10 grams of fiber in 100ml. Here's why.</td><td style="padding:4px">Your gut has trust issues. Fair.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">3</td><td style="padding:4px">You read ingredient labels, don't you?</td><td style="padding:4px">Are you a gut feelings person?</td><td style="padding:4px">This is about you. Not us.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">4</td><td style="padding:4px">Ok. Here's what we actually made.</td><td style="padding:4px">3 flavors. 0g added sugar. Real fruit.</td><td style="padding:4px">We put prebiotics and probiotics in a smoothie. Groundbreaking.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">5</td><td style="padding:4px">Synbiotic is a real word. We checked.</td><td style="padding:4px">Prebiotics + probiotics + fruit = this.</td><td style="padding:4px">We asked a food scientist. She said keep going.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">6</td><td style="padding:4px">We made a smoothie that doesn't need a fridge.</td><td style="padding:4px">Shelf-stable. Here's how.</td><td style="padding:4px">It lives in your bag. Your desk. Your chaos.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:4px;color:var(--lime)">7</td><td style="padding:4px">Update.</td><td style="padding:4px">Almost done. For real this time.</td><td style="padding:4px">Your gut is getting impatient.</td></tr>
+<tr><td style="padding:4px;color:var(--lime)">8</td><td style="padding:4px">Why we're doing this.</td><td style="padding:4px">One last thing before we launch.</td><td style="padding:4px">Your gut knows. Now you do too.</td></tr>
+</table>
+<p style="font-size:7px;color:#444;margin-top:6px"><strong>A/B test strategy:</strong> Run A vs B for first 2 weeks (50/50 split). Winner becomes default. Test C against winner in month 2. Aim for 50%+ open rate on Email 1. Track: open rate, click rate, reply rate, unsubscribe rate.</p>
+</div>
+<div class="emails">
+
+<!-- E1: THE HOOK -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">1</div><div class="em-day">Day 0</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">hey. you signed up for a smoothie waitlist.</div><div class="em-msg-l">let's just sit with that for a second.</div><div class="em-msg-r">I mean... yeah I did</div><div class="em-msg-l">it's not just a smoothie though.</div><div class="em-msg-l">it's got 10g of prebiotic fiber. 1 billion probiotics. real fruit purees. 0g added sugar.</div><div class="em-msg-l">in a tiny 100ml pouch you can throw in your bag.</div><div class="em-msg-r">ok that's actually kind of sick</div><div class="em-msg-l">we know.</div><div class="em-msg-l">we're still making it. you're early.</div><div style="background:var(--lime);color:#0D0D0D;border-radius:6px;padding:8px;margin:6px 0;font-size:8px;font-weight:700;text-align:center">Good food. Better poops. You're in.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">Follow along @saypheeew</p></div><div class="em-info"><p class="em-t">"Good food. Better poops."</p><p class="em-d"><strong>Hook:</strong> Acknowledges the absurdity of a smoothie waitlist, then makes it make sense. Establishes deadpan tone immediately. Product facts woven into convo naturally. No supplement language. <strong>CTA:</strong> Follow @saypheeew.</p><div class="em-tags"><span class="tag t-trigger">Immediate</span><span class="tag t-goal">Tone set + follow</span></div></div></div>
+
+<!-- E2: THE EDUCATION -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">2</div><div class="em-day">Day 3</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">quick question.</div><div class="em-msg-r">shoot</div><div class="em-msg-l">how many "gut health" drinks have you tried that were basically juice with a probiotic sticker on them?</div><div class="em-msg-r">...at least three</div><div class="em-msg-l">yeah. here's the thing.</div><div class="em-msg-l">probiotics without prebiotics is like planting seeds on concrete.</div><div class="em-msg-l">prebiotics are the food that probiotics need to actually do their job.</div><div class="em-msg-l">most brands skip the fiber because it's hard to formulate. so they just... don't.</div><div class="em-msg-r">wait so what's different about yours</div><div class="em-msg-l">we put 10g of prebiotic fiber IN the smoothie. with the probiotics. together. synbiotic.</div><div class="em-msg-l">that's not a marketing word. that's what it's called when you combine both.</div><div class="em-msg-r">why doesn't everyone do this</div><div class="em-msg-l">because it's harder to make taste good.</div><div class="em-msg-l">we figured it out.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">your gut has opinions. we respect that.</p></div><div class="em-info"><p class="em-t">"Probiotics without prebiotics = seeds on concrete."</p><p class="em-d"><strong>Hook:</strong> Calls out the juice-with-a-sticker problem they already know about. Educates on synbiotic concept without being clinical. "Synbiotic" defined naturally, not as a supplement claim. <strong>CTA:</strong> None explicit -- pure education / trust-building.</p><div class="em-tags"><span class="tag t-trigger">Wait: 3 days</span><span class="tag t-goal">Education + trust</span></div></div></div>
+
+<!-- E3: THE IDENTITY -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">3</div><div class="em-day">Day 7</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">ok real talk.</div><div class="em-msg-r">yeah?</div><div class="em-msg-l">do you read ingredient labels at the grocery store?</div><div class="em-msg-r">...I've been known to</div><div class="em-msg-l">do you get annoyed when "natural flavors" is doing a lot of heavy lifting?</div><div class="em-msg-r">ok are you watching me shop</div><div class="em-msg-l">no but I know the type.</div><div class="em-msg-l">you care about what you put in your body. but you also don't want to be the person who gives a TED talk about fiber at brunch.</div><div class="em-msg-r">that's... very specific and very accurate</div><div class="em-msg-l">that's who pheeew is for.</div><div class="em-msg-l">people who care about what they eat. quietly. without the lecture.</div><div style="background:var(--lime);color:#0D0D0D;border-radius:6px;padding:8px;margin:6px 0;font-size:8px;text-align:center"><strong>Your Gut Knows.</strong><br>You don't need to explain it.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">tell us -- what made you sign up? reply to this email.</p></div><div class="em-info"><p class="em-t">"You care. Quietly. Without the lecture."</p><p class="em-d"><strong>Hook:</strong> Defines the Pheeew person -- label reader, cares about food, not preachy about it. "Your Gut Knows" tagline delivered as identity statement. <strong>CTA:</strong> Reply (deliverability + relationship building).</p><div class="em-tags"><span class="tag t-trigger">Wait: 4 days</span><span class="tag t-goal">Identity + engagement</span></div></div></div>
+
+<!-- E4: THE REVEAL -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">4</div><div class="em-day">Day 12</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">ok you've been patient. here's what we made.</div><div class="em-msg-r">finally</div><div class="em-msg-l"><strong>Pheeew.</strong> A shelf-stable synbiotic smoothie.</div><div class="em-msg-l">three flavors:</div><div class="em-msg-l" style="background:rgba(218,255,0,.1)">Ginger Pear -- warm, grounding, a little spicy</div><div class="em-msg-l" style="background:rgba(100,0,150,.05)">Wild Berries -- tart, deep, your daily go-to</div><div class="em-msg-l" style="background:rgba(255,107,53,.08)">Tropical Punch -- bright, fun, vacation energy</div><div class="em-msg-l">every pouch: 10g prebiotic fiber. 1 billion probiotics. real fruit purees. 0g added sugar. vegan.</div><div class="em-msg-r">and it's shelf stable?</div><div class="em-msg-l">no fridge needed. throw it in your bag, your desk drawer, your glove box. it just... works.</div><div class="em-msg-l">100ml. one pouch. done.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">not ready yet. but when it is -- you're first.</p></div><div class="em-info"><p class="em-t">"Three flavors. Zero added sugar. One tiny pouch."</p><p class="em-d"><strong>Hook:</strong> "You've been patient" rewards waiting. All 3 SKUs revealed with personality. Shelf-stable surprise. No pricing -- just the product and the feeling. <strong>CTA:</strong> "You're first" -- exclusive positioning.</p><div class="em-tags"><span class="tag t-trigger">Wait: 5 days</span><span class="tag t-goal">Product reveal</span></div></div></div>
+
+<!-- E5: THE PROOF -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">5</div><div class="em-day">Day 17</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">I know what you're thinking.</div><div class="em-msg-r">what</div><div class="em-msg-l">"cool smoothie brand. what makes it different from the 400 other ones."</div><div class="em-msg-r">...I mean</div><div class="em-msg-l">fair. here's the honest answer.</div><div class="em-msg-l">most smoothies in stores are basically fruit juice with a marketing budget.</div><div class="em-msg-l">pheeew is a food. designed as a food. with functional ingredients that happen to be delicious.</div><div class="em-msg-l">10g of prebiotic fiber in a smoothie that actually tastes like a smoothie. not a science experiment.</div><div class="em-msg-l">the prebiotics feed the probiotics. the probiotics are alive. the fruit is real. that's it.</div><div class="em-msg-r">ok but how did you make fiber taste good</div><div class="em-msg-l">that part took us a while honestly.</div><div class="em-msg-l">turns out if you start with the fruit and build around it -- instead of starting with the fiber and trying to mask it -- you get something people actually want to drink.</div><div style="background:var(--lime);color:#0D0D0D;border-radius:6px;padding:8px;margin:6px 0;font-size:8px;font-weight:700;text-align:center">Food first. Function built in.</div></div></div><div class="em-info"><p class="em-t">"We started with the fruit. Not the fiber."</p><p class="em-d"><strong>Hook:</strong> Calls out skepticism before they voice it. Differentiates from supplement-coded products. Food-first positioning. Honest about the formulation challenge. <strong>CTA:</strong> Follow for more BTS.</p><div class="em-tags"><span class="tag t-trigger">Wait: 5 days</span><span class="tag t-goal">Trust + differentiation</span></div></div></div>
+
+<!-- E6: THE CONVENIENCE -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">6</div><div class="em-day">Day 22</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">pop quiz.</div><div class="em-msg-r">oh no</div><div class="em-msg-l">where's the weirdest place you've eaten a meal?</div><div class="em-msg-r">standing over the kitchen sink at 2pm on a Tuesday</div><div class="em-msg-l">relatable.</div><div class="em-msg-l">here's why we made pheeew shelf-stable.</div><div class="em-msg-l">because good food shouldn't need a fridge, a blender, a kitchen, or a plan.</div><div class="em-msg-l">100ml pouch. fits in a jacket pocket. no refrigeration. no prep. no "I'll have it tomorrow."</div><div class="em-msg-l">throw one in your bag on Monday. drink it on Thursday. it doesn't care.</div><div class="em-msg-r">so it just... sits there being healthy?</div><div class="em-msg-l">it sits there being a smoothie.</div><div class="em-msg-l">a really good smoothie that also happens to have 10g of fiber and a billion probiotics.</div><div class="em-msg-l">but yeah. it sits there. patiently. like your gut, waiting for you to pay attention to it.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">watch how it's made @saypheeew</p></div><div class="em-info"><p class="em-t">"It sits there. Patiently. Like your gut."</p><p class="em-d"><strong>Hook:</strong> "Pop quiz" is unexpected. Kitchen sink meal = universal. Makes shelf-stability feel like freedom, not compromise. The gut personification lands the deadpan humor. <strong>CTA:</strong> Watch BTS on social.</p><div class="em-tags"><span class="tag t-trigger">Wait: 5 days</span><span class="tag t-goal">Convenience + social</span></div></div></div>
+
+<!-- E7: THE UPDATE -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">7</div><div class="em-day">Day 28</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-l">update.</div><div class="em-msg-r">tell me</div><div class="em-msg-l">the formula is locked. all three flavors finalized.</div><div class="em-msg-l">ginger pear was the hardest. the ginger kept winning. we had to negotiate with it.</div><div class="em-msg-r">you negotiated with ginger?</div><div class="em-msg-l">it's a strong root. it has opinions.</div><div class="em-msg-l">packaging is in production. pouches. lime green and orange. very us.</div><div class="em-msg-l">final food safety testing is happening now.</div><div class="em-msg-r">when does it launch</div><div class="em-msg-l">soon. not "wellness brand soon" where that means 8 months. actually soon.</div><div class="em-msg-r">ok I trust you</div><div class="em-msg-l">you'll be the first person I email.</div><div class="em-msg-l">not a blast. you.</div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">stay close. your gut will thank you.</p></div><div class="em-info"><p class="em-t">"We negotiated with the ginger."</p><p class="em-d"><strong>Hook:</strong> "Update." one-word opener. Ginger negotiation joke is peak Pheeew voice. Real progress without corporate-speak. "Not wellness brand soon" calls out the industry. <strong>CTA:</strong> Stay close (passive retention).</p><div class="em-tags"><span class="tag t-trigger">Wait: 6 days</span><span class="tag t-goal">Anticipation peak</span></div></div></div>
+
+<!-- E8: THE MANIFESTO -->
+<div class="email"><div class="em-mock em-w"><div class="em-num">8</div><div class="em-day">Day 35</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;width:100%"><div class="em-msg-r">can I ask you something?</div><div class="em-msg-l">always.</div><div class="em-msg-r">why a smoothie? like why this?</div><div class="em-msg-l">because gut health got weird.</div><div class="em-msg-l">it became this whole... thing. with influencers and capsules and morning routines that take 45 minutes.</div><div class="em-msg-l">and we kept thinking -- it's food. gut health is literally about food.</div><div class="em-msg-l">so we made food.</div><div class="em-msg-l">real fruit. real fiber. real probiotics. in a format that fits your actual life, not your aspirational life.</div><div class="em-msg-r">that's it?</div><div class="em-msg-l">that's it.</div><div class="em-msg-l">no pills. no powders. no 12-step protocol.</div><div class="em-msg-l">just a smoothie that's actually good for you. and actually good.</div><div style="background:var(--lime);color:#0D0D0D;border-radius:6px;padding:10px;margin:6px 0;font-size:10px;font-weight:700;text-align:center;line-height:1.5">Your Gut Knows.<br><span style="font-weight:400;font-size:8px;opacity:.7">Good food. Better poops. That's the whole pitch.</span></div></div><p style="font-size:8px;text-align:center;color:var(--bk);opacity:.5;margin-top:4px">share this with someone who gets it.</p></div><div class="em-info"><p class="em-t">"Your Gut Knows. That's the whole pitch."</p><p class="em-d"><strong>Hook:</strong> Reader asks WHY -- reverses dynamic. "Gut health got weird" is the brand thesis. "Your actual life, not your aspirational life" is the manifesto line. Ends with full tagline reveal. <strong>CTA:</strong> Share (organic growth).</p><div class="em-tags"><span class="tag t-trigger">Wait: 7 days</span><span class="tag t-goal">Manifesto + share</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 2: PRE-LAUNCH NURTURE -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="pre">
+<div class="flow-header">
+<div class="flow-num">2</div>
+<div><div class="flow-title">Pre-Launch Nurture (Post-Welcome)</div><div class="flow-sub">Trigger: completed Flow 1 + hasn't purchased | Bi-weekly until launch</div></div>
+<div class="flow-phase phase-pre">PRE-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Flow 1 complete</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Cadence</div><div class="val">Bi-weekly</div></div>
+<div><div class="label">Goal</div><div class="val">Stay warm</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They finished the welcome sequence. They like you. But attention fades. Each email is a reason to stay -- new content, new progress, a new reason to care. Updates from a friend, not a brand.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">N1</td><td style="padding:3px">A: We ran a taste test. Things got emotional.</td><td style="padding:3px">B: 47 people tried it. Here's what they said.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">N2</td><td style="padding:3px">A: Behind the scenes at the factory.</td><td style="padding:3px">B: Quick update. Pouches are printing.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">N3</td><td style="padding:3px">A: We're almost ready.</td><td style="padding:3px">B: Your gut's patience is about to pay off.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">N1</div><div class="em-day">Wk 7</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">We ran a<br>taste test.</p><p style="font-size:8px;color:#666;margin-top:6px">47 people. 3 flavors.<br>Someone cried over the Ginger Pear.<br>(Happy tears. We think.)</p><div class="em-cta-lime">See the results</div></div></div><div class="em-info"><p class="em-t">Taste test results</p><p class="em-d">Social proof through taste test reactions. Humanizes the product development. Content-driven, no selling.</p><div class="em-tags"><span class="tag t-trigger">2 wks post-welcome</span><span class="tag t-goal">Content + warmth</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">N2</div><div class="em-day">Wk 9</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Behind the scenes<br>at the factory.</p><p style="font-size:8px;color:#666;margin-top:6px">The pouches are printing.<br>The fruit puree smells incredible.<br>We're getting close.</p></div><p style="font-size:7px;text-align:center;color:var(--bk);opacity:.5;margin-top:auto">Building in public. More soon.</p></div><div class="em-info"><p class="em-t">"The pouches are printing."</p><p class="em-d">BTS manufacturing update. Real photos of production. Personal tone. Keeps list warm.</p><div class="em-tags"><span class="tag t-trigger">2 wks after N1</span><span class="tag t-goal">Journey + BTS</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">N3</div><div class="em-day">Wk 11</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Almost ready.</p><p style="font-size:8px;color:#666;margin-top:6px">All three flavors locked.<br>Pouches are packed.<br>You're on the list.</p><p style="font-size:8px;color:var(--orange);font-weight:700;margin-top:6px">Preorder opens soon.<br>You'll know first.</p></div></div><div class="em-info"><p class="em-t">"Almost ready."</p><p class="em-d">Anticipation peak. Everything is locked. "You'll know first." Transitions to preorder flow.</p><div class="em-tags"><span class="tag t-trigger">2 wks after N2</span><span class="tag t-goal">Anticipation</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 3: PREORDER ANNOUNCEMENT -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="pre">
+<div class="flow-header">
+<div class="flow-num">3</div>
+<div><div class="flow-title">Preorder Announcement</div><div class="flow-sub">Trigger: preorder page goes live | Sent to entire waitlist | Campaign, not flow</div></div>
+<div class="flow-phase phase-pre">PRE-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Type</div><div class="val">Campaign</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Audience</div><div class="val">Full waitlist</div></div>
+<div><div class="label">Goal</div><div class="val">Preorders</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They've been waiting. They trust you. Now it's time to give them the thing. Keep the energy earned -- not corporate, not salesy. Just "it's ready, you're first, here's how."</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">PO1</td><td style="padding:3px">A: It's here.</td><td style="padding:3px">B: Your gut's been waiting for this.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">PO2</td><td style="padding:3px">A: Still thinking about it?</td><td style="padding:3px">B: 3 flavors. Your move.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">PO3</td><td style="padding:3px">A: Last chance for early pricing.</td><td style="padding:3px">B: Preorder closes Friday.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">PO1</div><div class="em-day">Day 0</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:22px;font-weight:800;margin-top:auto;text-align:center">It's here.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Pheeew is now available for preorder.<br>Three flavors. Your gut's been patient enough.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Preorder now</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">You're on the list. You get first access.</p></div><div class="em-info"><p class="em-t">"It's here." -- Preorder launch</p><p class="em-d">The moment. Short, clean, definitive. Lime background = brand energy. First access for waitlist.</p><div class="em-tags"><span class="tag t-trigger">Preorder launch day</span><span class="tag t-goal">Conversion</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">PO2</div><div class="em-day">Day 2</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Still thinking?</p><p style="font-size:8px;color:#666;margin-top:6px">Here's what's in the box:<br><br>15-pack sub: $45/mo ($3/pouch)<br>30-pack sub: $89/mo<br>60-pack sub: $168/mo<br><br>Real fruit. Real fiber. Real probiotics.<br>0g added sugar. Vegan. Shelf-stable.</p><div class="em-cta-lime">Pick your pack</div></div></div><div class="em-info"><p class="em-t">"Still thinking?" -- Value recap</p><p class="em-d">Reminder for non-openers/non-purchasers. First time pricing appears. Clean value stack. No pressure.</p><div class="em-tags"><span class="tag t-trigger">2 days, non-purchasers</span><span class="tag t-goal">Conversion</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">PO3</div><div class="em-day">Day 5</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Last call for<br>early access pricing.</p><p style="font-size:8px;color:#666;margin-top:6px">After this week, preorder<br>pricing ends. Waitlist only.</p><div class="em-cta-orange">Lock in your price</div></div></div><div class="em-info"><p class="em-t">"Last call." -- Urgency (real, not fake)</p><p class="em-d">Honest urgency. Preorder window is actually closing. No countdown timer gimmicks. Just a deadline.</p><div class="em-tags"><span class="tag t-trigger">5 days, non-purchasers</span><span class="tag t-goal">Conversion + urgency</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 4: LAUNCH DAY -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="launch">
+<div class="flow-header">
+<div class="flow-num">4</div>
+<div><div class="flow-title">Launch Day</div><div class="flow-sub">Trigger: product officially live | Campaign to full list | THE moment</div></div>
+<div class="flow-phase phase-launch">LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Type</div><div class="val">Campaign</div></div>
+<div><div class="label">Emails</div><div class="val">2</div></div>
+<div><div class="label">Audience</div><div class="val">Full list</div></div>
+<div><div class="label">Goal</div><div class="val">First sales</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> This is the payoff for everyone who waited. The energy should feel like a friend texting you "IT'S LIVE" -- not a corporate product announcement. Keep the excitement, lose the formality.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">L1</td><td style="padding:3px">A: We're live.</td><td style="padding:3px">B: Pheeew is shipping.</td><td style="padding:3px">C: Your gut called. It's time.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">L2</td><td style="padding:3px">A: You waited for this.</td><td style="padding:3px">B: [X] people already ordered.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">L1</div><div class="em-day">Launch</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:26px;font-weight:800;margin-top:auto;text-align:center">We're live.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Pheeew is shipping now.<br>Three flavors. Your gut already knows.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Shop now</div><p style="font-size:7px;opacity:.3;margin-top:auto;text-align:center">jjffyu-pr.myshopify.com</p></div><div class="em-info"><p class="em-t">"We're live." -- Launch announcement</p><p class="em-d">The biggest email. Lime background. Maximum brand energy. Two words, one CTA. Done.</p><div class="em-tags"><span class="tag t-trigger">Launch day</span><span class="tag t-goal">Sales</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">L2</div><div class="em-day">Launch +2</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">You waited for this.</p><p style="font-size:8px;color:#666;margin-top:6px">[X] people have already ordered.<br>Here's what they're getting:</p><p style="font-size:8px;color:var(--bk);line-height:2;margin-top:6px">10g prebiotic fiber<br>1 billion probiotics<br>Real fruit purees<br>0g added sugar<br>Shelf-stable 100ml pouches</p><div class="em-cta-lime">Subscribe -- from $3/pouch</div></div></div><div class="em-info"><p class="em-t">"You waited for this."</p><p class="em-d">Follow-up for non-purchasers. Social proof + ingredient recap. Subscription-first CTA.</p><div class="em-tags"><span class="tag t-trigger">2 days, non-purchasers</span><span class="tag t-goal">Conversion</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 5: POST-PURCHASE WELCOME -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="launch">
+<div class="flow-header">
+<div class="flow-num">5</div>
+<div><div class="flow-title">Post-Purchase Welcome</div><div class="flow-sub">Trigger: first order placed | Bundle builder education, flavor guide, storage tips</div></div>
+<div class="flow-phase phase-launch">LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">First purchase</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Duration</div><div class="val">7 days</div></div>
+<div><div class="label">Goal</div><div class="val">Onboard + excite</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They just bought it. They're excited but also wondering "did I just spend $45 on smoothies?" Your job: confirm the decision, teach them how to enjoy it, and make them feel smart for choosing this. Reduce buyer's remorse. Build the ritual.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">PP1</td><td style="padding:3px">A: Your gut just leveled up.</td><td style="padding:3px">B: Order confirmed. Your gut knows.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">PP2</td><td style="padding:3px">A: Your flavor guide is here.</td><td style="padding:3px">B: Ginger Pear before noon. Trust us.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">PP3</td><td style="padding:3px">A: Where to stash your Pheeew.</td><td style="padding:3px">B: Your desk drawer just got an upgrade.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">PP1</div><div class="em-day">Immediate</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:16px;font-weight:800;color:var(--bk)">You're in.<br>Your gut thanks you.</p><p style="font-size:8px;color:#666;margin-top:6px">Order confirmed.<br>Here's what happens next:</p><p style="font-size:8px;color:var(--bk);line-height:2;margin-top:6px">1. We pack your pouches (1-2 days)<br>2. Shipping email with tracking<br>3. It arrives at your door (3-5 days)</p><p style="font-size:8px;color:var(--orange);font-weight:700;margin-top:8px">Pro tip: don't pick a favorite flavor yet.<br>It changes. Your gut has moods.</p></div></div><div class="em-info"><p class="em-t">"You're in. Your gut thanks you."</p><p class="em-d">Order confirmation + timeline. Reduces anxiety. "Your gut has moods" sets the deadpan tone for the relationship.</p><div class="em-tags"><span class="tag t-trigger">Immediate</span><span class="tag t-goal">Onboard + reduce anxiety</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">PP2</div><div class="em-day">Day 2</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">The unofficial<br>flavor guide.</p><p style="font-size:8px;color:#666;margin-top:6px;line-height:1.8"><span style="color:var(--lime);font-weight:700">Ginger Pear</span> -- morning. warm. grounding.<br>"I'm a person who has their life together."<br><br><span style="color:#7B2D8E;font-weight:700">Wild Berries</span> -- afternoon. tart. focused.<br>"I need something but coffee isn't it."<br><br><span style="color:var(--orange);font-weight:700">Tropical Punch</span> -- anytime. bright. fun.<br>"I deserve a vacation but this will do."</p></div></div><div class="em-info"><p class="em-t">"The unofficial flavor guide."</p><p class="em-d">Flavor personality profiles. Gives them a reason to try all three. Builds the ritual around moments, not health claims.</p><div class="em-tags"><span class="tag t-trigger">2 days post-purchase</span><span class="tag t-goal">Education + excitement</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">PP3</div><div class="em-day">Day 5</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Where to<br>stash your Pheeew.</p><p style="font-size:8px;color:#666;margin-top:6px;line-height:1.8">It's shelf-stable. Put it anywhere.<br><br>Your desk drawer. Your gym bag.<br>Your nightstand. Your car.<br>That one kitchen drawer<br>you pretend doesn't exist.<br><br>No fridge needed. No expiration panic.<br>Room temp is its happy place.</p><p style="font-size:8px;color:var(--orange);font-weight:700;margin-top:8px">Follow @saypheeew for recipes,<br>gut humor, and vibes.</p></div></div><div class="em-info"><p class="em-t">"Where to stash your Pheeew."</p><p class="em-d">Storage = convenience education. "That one drawer you pretend doesn't exist" = relatable humor. Social follow CTA while they wait for delivery.</p><div class="em-tags"><span class="tag t-trigger">5 days post-purchase</span><span class="tag t-goal">Education + social</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 6: SHIPPING / FULFILLMENT -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="launch">
+<div class="flow-header">
+<div class="flow-num">6</div>
+<div><div class="flow-title">Shipping & Fulfillment</div><div class="flow-sub">Trigger: Shopify webhook events | Transactional | 3 emails</div></div>
+<div class="flow-phase phase-launch">LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Webhook</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Type</div><div class="val">Transactional</div></div>
+<div><div class="label">Owner</div><div class="val">Jason (ops)</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> Transactional emails are the most-opened emails you'll ever send. Don't waste them on boring templates. Each one should feel like Pheeew -- deadpan, warm, on-brand. Even shipping notifications can build love.</p>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">S1</div><div class="em-day">Shipped</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Your pouches<br>are on the move.</p><p style="font-size:8px;color:#666;margin-top:6px">Tracking: [tracking number]<br>Estimated delivery: [date]</p><div class="em-cta-lime">Track your order</div><p style="font-size:7px;color:#999;margin-top:8px">Your gut can sense it. That's normal.</p></div></div><div class="em-info"><p class="em-t">"Your pouches are on the move."</p><p class="em-d">Shipped notification with tracking. On-brand with the "your gut can sense it" closer.</p><div class="em-tags"><span class="tag t-trigger">Fulfillment webhook</span><span class="tag t-goal">Transactional</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">S2</div><div class="em-day">Out for delivery</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Almost there.</p><p style="font-size:8px;color:#666;margin-top:6px">Your Pheeew is<br>out for delivery today.</p><p style="font-size:8px;color:var(--orange);font-weight:700;margin-top:8px">Pro tip: try one immediately.<br>Standing up. Over the sink.<br>No judgment.</p></div></div><div class="em-info"><p class="em-t">"Almost there."</p><p class="em-d">Out for delivery. "Over the sink" callback from the welcome sequence. Builds unboxing excitement.</p><div class="em-tags"><span class="tag t-trigger">Delivery webhook</span><span class="tag t-goal">Excitement</span></div></div></div>
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">S3</div><div class="em-day">Delivered</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:18px;font-weight:800;margin-top:auto;text-align:center">It's here.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Your Pheeew has been delivered.<br><br>Tear. Sip. Done.<br>Your gut knows what to do.</p></div><div class="em-info"><p class="em-t">"It's here." -- Delivered</p><p class="em-d">Delivered notification. "Tear. Sip. Done." becomes the usage ritual. Transitions to post-delivery flow.</p><div class="em-tags"><span class="tag t-trigger">Delivered webhook</span><span class="tag t-goal">Ritual</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 7: POST-DELIVERY CHECK-IN -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="post">
+<div class="flow-header">
+<div class="flow-num">7</div>
+<div><div class="flow-title">Post-Delivery Check-In</div><div class="flow-sub">Trigger: 5 days after delivery | Taste feedback, review ask, referral | 4 emails</div></div>
+<div class="flow-phase phase-post">POST-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">5 days post-delivery</div></div>
+<div><div class="label">Emails</div><div class="val">4</div></div>
+<div><div class="label">Duration</div><div class="val">21 days</div></div>
+<div><div class="label">Goal</div><div class="val">Feedback + review + referral</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They've had the product for a few days. They've tried it. They have opinions. Your job: ask genuine questions, make it easy to review, and turn happy customers into ambassadors. Don't beg -- just be real.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">C1</td><td style="padding:3px">A: So... how was it?</td><td style="padding:3px">B: Your gut has opinions. We want them.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">C2</td><td style="padding:3px">A: Which flavor won?</td><td style="padding:3px">B: Quick -- rank your flavors.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">C3</td><td style="padding:3px">A: 30 seconds. Honest review.</td><td style="padding:3px">B: Tell people about your poops. (Kidding. Mostly.)</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">C4</td><td style="padding:3px">A: Know someone who needs better poops?</td><td style="padding:3px">B: Give $5, get $5. Gut karma.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">C1</div><div class="em-day">Day 5</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:16px;font-weight:800;color:var(--bk)">So...<br>how was it?</p><p style="font-size:8px;color:#666;margin-top:6px">You've had a few days.<br>We genuinely want to know.<br><br>Did you love it? Hate it?<br>Feel confused by your own enthusiasm<br>for a smoothie pouch?<br><br>Hit reply. Tell us everything.</p><p style="font-size:7px;color:#999;margin-top:8px">No form. No survey. Just... talk to us.</p></div></div><div class="em-info"><p class="em-t">"So... how was it?"</p><p class="em-d">Genuine check-in. Reply-based (great for deliverability). "Confused by your own enthusiasm" = self-aware humor.</p><div class="em-tags"><span class="tag t-trigger">5 days post-delivery</span><span class="tag t-goal">Feedback + deliverability</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">C2</div><div class="em-day">Day 10</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Which flavor won?</p><p style="font-size:8px;color:#666;margin-top:6px">We're keeping score internally.<br><br>Current standings:</p><p style="font-size:9px;color:var(--bk);line-height:2;margin-top:4px"><span style="color:var(--lime);font-weight:700">1.</span> Ginger Pear<br><span style="color:var(--orange);font-weight:700">2.</span> Wild Berries<br><span style="color:#7B2D8E;font-weight:700">3.</span> Tropical Punch</p><p style="font-size:8px;color:var(--orange);font-weight:700;margin-top:6px">Vote: reply with your #1</p></div></div><div class="em-info"><p class="em-t">"Which flavor won?"</p><p class="em-d">Gamification via flavor ranking. Creates engagement and useful product data. Reply-based interaction.</p><div class="em-tags"><span class="tag t-trigger">10 days post-delivery</span><span class="tag t-goal">Engagement + data</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">C3</div><div class="em-day">Day 14</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">30 seconds.<br>Honest review.</p><p style="font-size:8px;color:#666;margin-top:6px">We're a tiny brand.<br>Reviews actually move the needle for us.<br><br>If you liked it (or didn't),<br>a quick review helps more than<br>you'd think.</p><div class="em-cta-lime">Leave a review</div><p style="font-size:7px;color:#999;margin-top:8px">Brutal honesty welcome.<br>We're not fragile.</p></div></div><div class="em-info"><p class="em-t">"30 seconds. Honest review."</p><p class="em-d">Review ask. "We're not fragile" = disarming honesty. Small brand card played authentically. Low time commitment.</p><div class="em-tags"><span class="tag t-trigger">14 days post-delivery</span><span class="tag t-goal">Reviews</span></div></div></div>
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">C4</div><div class="em-day">Day 21</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;margin-top:auto;text-align:center">Know someone who<br>needs better poops?</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Give them $5 off. Get $5 off.<br>Gut karma.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Share your link</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">Tell a friend. Their gut will thank you.</p></div><div class="em-info"><p class="em-t">"Know someone who needs better poops?"</p><p class="em-d">Referral intro. "Gut karma" = memorable. Natural transition from review to referral. Tees up Flow 10.</p><div class="em-tags"><span class="tag t-trigger">21 days post-delivery</span><span class="tag t-goal">Referral</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 8: SUBSCRIPTION LIFECYCLE -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="post">
+<div class="flow-header">
+<div class="flow-num">8</div>
+<div><div class="flow-title">Subscription Lifecycle</div><div class="flow-sub">Trigger: subscription events | Renewal, skip, pause, payment failed | 5 emails</div></div>
+<div class="flow-phase phase-post">POST-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Sub events</div></div>
+<div><div class="label">Emails</div><div class="val">5</div></div>
+<div><div class="label">Type</div><div class="val">Transactional + retention</div></div>
+<div><div class="label">Goal</div><div class="val">Retain subscribers</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> Subscription management emails are where most brands get robotic. Keep the Pheeew voice even in transactional moments. Payment failed? Don't panic them. Skip request? Don't guilt them. Pause? Be cool about it. Retention through respect, not manipulation.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">SL1</td><td style="padding:3px">A: Your next box ships in 3 days.</td><td style="padding:3px">B: Heads up -- pouches incoming.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">SL2</td><td style="padding:3px">A: You skipped this month. No hard feelings.</td><td style="padding:3px">B: Skipped. Got it. See you next time.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">SL3</td><td style="padding:3px">A: You paused. We'll be here.</td><td style="padding:3px">B: Paused. Your gut will miss you.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">SL4</td><td style="padding:3px">A: Quick -- your payment didn't go through.</td><td style="padding:3px">B: Your card said no. Let's fix that.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">SL5</td><td style="padding:3px">A: Still having trouble? Last try.</td><td style="padding:3px">B: We don't want to lose you over a card.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">SL1</div><div class="em-day">3 days pre-renewal</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Heads up.</p><p style="font-size:8px;color:#666;margin-top:6px">Your next box of Pheeew<br>ships in 3 days.<br><br>Same flavors? Different mix?<br>Want to swap or skip?<br><br>You're in control. Always.</p><div class="em-cta-lime">Manage subscription</div></div></div><div class="em-info"><p class="em-t">"Heads up." -- Pre-renewal</p><p class="em-d">Renewal reminder. Empowers them to modify. "You're in control. Always." = trust. Reduces involuntary churn.</p><div class="em-tags"><span class="tag t-trigger">3 days before renewal</span><span class="tag t-goal">Retention</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">SL2</div><div class="em-day">On skip</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Skipped.<br>No hard feelings.</p><p style="font-size:8px;color:#666;margin-top:6px">Your gut gets it.<br>Sometimes you need a break.<br><br>Your next box will ship on [date]<br>unless you say otherwise.</p><p style="font-size:7px;color:#999;margin-top:8px">We'll be here. Shelf-stable, remember?</p></div></div><div class="em-info"><p class="em-t">"No hard feelings." -- Skip confirmation</p><p class="em-d">Acknowledges skip without guilt. "Shelf-stable, remember?" = product benefit as a joke. Next ship date visible.</p><div class="em-tags"><span class="tag t-trigger">Skip event</span><span class="tag t-goal">Retention</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">SL3</div><div class="em-day">On pause</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Paused.<br>We'll be here.</p><p style="font-size:8px;color:#666;margin-top:6px">No guilt trip. No countdown timer.<br>Just us, waiting patiently.<br>(Like your gut.)<br><br>When you're ready, hit resume.</p><div class="em-cta-lime">Resume anytime</div></div></div><div class="em-info"><p class="em-t">"We'll be here." -- Pause confirmation</p><p class="em-d">Zero guilt. "No countdown timer" = anti-dark-pattern positioning. Easy resume CTA.</p><div class="em-tags"><span class="tag t-trigger">Pause event</span><span class="tag t-goal">Retention + trust</span></div></div></div>
+
+<div class="email"><div class="em-mock em-orange"><div class="em-num">SL4</div><div class="em-day">Payment failed</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;margin-top:auto;text-align:center">Your card said no.</p><p style="font-size:9px;opacity:.8;margin-top:4px;text-align:center">It happens. No stress.<br>Update your payment info and<br>we'll get your pouches moving.</p><div style="background:#fff;color:var(--orange);padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;display:inline-block;margin-top:8px;text-align:center">Update payment</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">We'll retry in 3 days if you don't update.</p></div><div class="em-info"><p class="em-t">"Your card said no." -- Payment failed</p><p class="em-d">Orange = attention without panic. Friendly tone. Clear CTA. Retry timeline stated upfront.</p><div class="em-tags"><span class="tag t-trigger">Payment failed event</span><span class="tag t-goal">Payment recovery</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">SL5</div><div class="em-day">+5 days</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Last try before<br>we pause your sub.</p><p style="font-size:8px;color:#666;margin-top:6px">We don't want to lose you<br>over a credit card issue.<br><br>Update your payment info<br>and we'll ship immediately.</p><div class="em-cta-orange">Fix payment</div><p style="font-size:7px;color:#999;margin-top:8px">After this, we'll pause your sub.<br>No charge. Resume anytime.</p></div></div><div class="em-info"><p class="em-t">"Last try." -- Final payment attempt</p><p class="em-d">Clear stakes without fear. "We'll pause, not cancel" = safety net. Immediate shipping as incentive.</p><div class="em-tags"><span class="tag t-trigger">5 days after failed payment</span><span class="tag t-goal">Payment recovery</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 9: WINBACK -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="post">
+<div class="flow-header">
+<div class="flow-num">9</div>
+<div><div class="flow-title">Winback</div><div class="flow-sub">Trigger: cancelled subscription or no purchase in 30/60/90 days | 3 emails</div></div>
+<div class="flow-phase phase-post">POST-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Lapsed 30d</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Duration</div><div class="val">90 days</div></div>
+<div><div class="label">Goal</div><div class="val">Reactivate</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They left. Don't pretend they didn't. Don't be desperate. Be the friend who checks in -- once, twice, one last time -- then respects the silence. If they come back, great. If not, sunset them gracefully.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">W1</td><td style="padding:3px">A: Your gut misses you. (We do too.)</td><td style="padding:3px">B: It's been 30 days.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">W2</td><td style="padding:3px">A: Still there? Here's 15% off.</td><td style="padding:3px">B: We made some changes. Come see.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">W3</td><td style="padding:3px">A: Last one from us. No hard feelings.</td><td style="padding:3px">B: One last pouch before we go quiet.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">W1</div><div class="em-day">Day 30</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">It's been a minute.</p><p style="font-size:8px;color:#666;margin-top:6px">Your gut's been eating<br>whatever you've been giving it.<br><br>Just checking in.<br>No pressure. Just... poops aren't<br>gonna optimize themselves.</p><div class="em-cta-lime">Come back</div></div></div><div class="em-info"><p class="em-t">"It's been a minute." -- 30 day check-in</p><p class="em-d">Light-touch first outreach. Gut humor keeps it on-brand. No discount yet -- just a vibe check.</p><div class="em-tags"><span class="tag t-trigger">30 days lapsed</span><span class="tag t-goal">Re-engagement</span></div></div></div>
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">W2</div><div class="em-day">Day 60</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;margin-top:auto;text-align:center">15% off.<br>Because we miss you.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Use code GUTFEELING<br>at checkout.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Shop with 15% off</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">Valid 7 days. Your gut's on a timer.</p></div><div class="em-info"><p class="em-t">"15% off. Because we miss you." -- 60 day incentive</p><p class="em-d">Discount deployed. "GUTFEELING" code is memorable and on-brand. 7-day expiry creates real urgency.</p><div class="em-tags"><span class="tag t-trigger">60 days lapsed</span><span class="tag t-goal">Reactivation</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-d"><div class="em-num">W3</div><div class="em-day">Day 90</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;color:var(--lime);opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;color:var(--lime);margin-top:auto;text-align:center">Last one from us.</p><p style="font-size:9px;color:#888;margin-top:4px;text-align:center">No guilt. No tricks.<br>If Pheeew isn't your thing, that's ok.<br><br>But if you ever want to come back,<br>we'll be here. Shelf-stable, remember?</p><p style="font-size:7px;color:#555;margin-top:auto;text-align:center">Your Gut Knows.</p></div><div class="em-info"><p class="em-t">"Last one from us." -- 90 day final</p><p class="em-d">Respectful goodbye. "Shelf-stable, remember?" = brilliant callback. Dark background = different feel. If no engagement, move to sunset.</p><div class="em-tags"><span class="tag t-trigger">90 days lapsed</span><span class="tag t-goal">Final chance / sunset</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 10: REFERRAL -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="post">
+<div class="flow-header">
+<div class="flow-num">10</div>
+<div><div class="flow-title">Referral -- "Give $5 / Get $5"</div><div class="flow-sub">Trigger: 21 days post-delivery OR review submitted | 2 emails</div></div>
+<div class="flow-phase phase-post">POST-LAUNCH</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Post-review / 21d</div></div>
+<div><div class="label">Emails</div><div class="val">2</div></div>
+<div><div class="label">Incentive</div><div class="val">$5 / $5</div></div>
+<div><div class="label">Goal</div><div class="val">Acquisition</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They like the product. They left a review. Now make it stupid easy to share. "Gut karma" is the referral hook -- simple, funny, sticky. Don't overcomplicate it.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">R1</td><td style="padding:3px">A: Give $5. Get $5. Gut karma.</td><td style="padding:3px">B: Your friends' guts will thank you.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">R2</td><td style="padding:3px">A: Your referral link is lonely.</td><td style="padding:3px">B: 1 share = 1 happy gut.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">R1</div><div class="em-day">Day 0</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:16px;font-weight:800;margin-top:auto;text-align:center">Give $5. Get $5.<br>Gut karma.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">Share your unique link with a friend.<br>They get $5 off. You get $5 off.<br>Everyone's gut wins.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Get your referral link</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">No limit. Refer 10 friends, save $50.</p></div><div class="em-info"><p class="em-t">"Give $5. Get $5. Gut karma."</p><p class="em-d">Referral program launch. Simple, clear value. "Gut karma" = memorable hook. No limit mentioned = motivating.</p><div class="em-tags"><span class="tag t-trigger">Post-review or 21d post-delivery</span><span class="tag t-goal">Referral acquisition</span><span class="tag t-revenue">Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">R2</div><div class="em-day">Day 7</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Your referral link<br>is feeling neglected.</p><p style="font-size:8px;color:#666;margin-top:6px">It's just sitting there.<br>Waiting. Patiently.<br>Like a pouch in a desk drawer.<br><br>Share it. Your friend gets $5 off.<br>You get $5 off. Simple math.</p><div class="em-cta-lime">Share your link</div></div></div><div class="em-info"><p class="em-t">"Your referral link is feeling neglected."</p><p class="em-d">Gentle reminder. Personification of the link = deadpan humor. Desk drawer callback. One more nudge, then done.</p><div class="em-tags"><span class="tag t-trigger">7 days after R1, no referrals</span><span class="tag t-goal">Referral reminder</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 11: BROWSE ABANDONMENT -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="always">
+<div class="flow-header">
+<div class="flow-num">11</div>
+<div><div class="flow-title">Browse Abandonment</div><div class="flow-sub">Trigger: viewed product page but didn't add to cart | 2 emails</div></div>
+<div class="flow-phase phase-always">ALWAYS-ON</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Product view</div></div>
+<div><div class="label">Emails</div><div class="val">2</div></div>
+<div><div class="label">Filter</div><div class="val">No cart / no purchase</div></div>
+<div><div class="label">Goal</div><div class="val">Move to cart</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They looked. They were interested. Something stopped them -- price, timing, distraction, uncertainty. Your job: remind them gently, address the most likely objection (is it worth it?), and give them a reason to come back. Not pushy. Not "YOU LEFT SOMETHING BEHIND!!!"</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">BA1</td><td style="padding:3px">A: Your gut noticed you looking.</td><td style="padding:3px">B: Still curious?</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">BA2</td><td style="padding:3px">A: One more look won't hurt.</td><td style="padding:3px">B: Here's what other people are saying.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">BA1</div><div class="em-day">+2 hours</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Your gut noticed<br>you looking.</p><p style="font-size:8px;color:#666;margin-top:6px">You checked out [product name].<br>Your gut has opinions about that.<br><br>10g prebiotic fiber. 1B probiotics.<br>Real fruit. 0g added sugar.<br>100ml. Shelf-stable.</p><div class="em-cta-lime">Take another look</div></div></div><div class="em-info"><p class="em-t">"Your gut noticed you looking."</p><p class="em-d">2-hour delay. Light, not desperate. Product recap addresses "what was that again?" Quick value stack.</p><div class="em-tags"><span class="tag t-trigger">2 hours post-browse</span><span class="tag t-goal">Move to cart</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">BA2</div><div class="em-day">+24 hours</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">What people are<br>actually saying.</p><p style="font-size:8px;color:#666;margin-top:6px;line-height:1.8">"I drink one every morning.<br>My gut has never been happier."<br><span style="font-size:7px;color:#999">-- Sarah K.</span><br><br>"It tastes like a real smoothie.<br>Not a health food punishment."<br><span style="font-size:7px;color:#999">-- Marcus T.</span></p><div class="em-cta-orange">Shop Pheeew</div></div></div><div class="em-info"><p class="em-t">"What people are actually saying."</p><p class="em-d">Social proof email. Real-sounding reviews (replace with actuals when available). Addresses taste concern.</p><div class="em-tags"><span class="tag t-trigger">24 hours post-browse</span><span class="tag t-goal">Trust + cart</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 12: CART ABANDONMENT (MOST IMPORTANT) -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="always">
+<div class="flow-header">
+<div class="flow-num">12</div>
+<div><div class="flow-title">Cart Abandonment</div><div class="flow-sub">Trigger: added to cart but didn't purchase | MOST IMPORTANT REVENUE FLOW | 3 emails</div></div>
+<div class="flow-phase phase-always">ALWAYS-ON</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Cart abandon</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Priority</div><div class="val" style="color:var(--orange)">#1 REVENUE</div></div>
+<div><div class="label">Goal</div><div class="val">Recover sale</div></div>
+</div>
+<p style="font-size:8px;color:#FF6B35;margin-bottom:6px;font-weight:700">THIS IS THE MOST IMPORTANT REVENUE FLOW. Expect 5-15% of abandoned carts to convert. Optimize obsessively. A/B test everything. This flow alone can pay for Klaviyo.</p>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> They wanted it enough to add to cart. Something stopped them -- price, distraction, "I'll do it later." Email 1 is a gentle nudge. Email 2 adds social proof. Email 3 adds urgency + a small incentive. Escalation, not repetition.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--orange);margin-bottom:4px">A/B SUBJECT LINES -- TEST AGGRESSIVELY</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--orange)">AC1</td><td style="padding:3px">A: You left something behind.</td><td style="padding:3px">B: Your cart is giving you a look.</td><td style="padding:3px">C: Still thinking?</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--orange)">AC2</td><td style="padding:3px">A: Your gut was so close.</td><td style="padding:3px">B: People are saying things about this smoothie.</td><td style="padding:3px">C: Don't let your cart go cold.</td></tr>
+<tr><td style="padding:3px;color:var(--orange)">AC3</td><td style="padding:3px">A: Ok fine. 10% off. Last chance.</td><td style="padding:3px">B: Your cart expires tonight.</td><td style="padding:3px">C: Free shipping. Final nudge.</td></tr>
+</table>
+<p style="font-size:7px;color:#444;margin-top:6px"><strong>A/B test strategy:</strong> Test subject lines, send times, and discount vs. free shipping on Email 3. Run 3-way split on Email 1 (highest volume). Track: recovery rate, revenue per email, AOV of recovered carts. Target: 10%+ recovery rate.</p>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">AC1</div><div class="em-day">+1 hour</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:16px;font-weight:800;color:var(--bk)">Your cart is<br>giving you a look.</p><p style="font-size:8px;color:#666;margin-top:6px">You left [product] in your cart.<br>It's still there. Waiting.<br>Patiently.<br><br>Like a pouch on your desk.<br>Like your gut, wondering<br>when you're going to commit.</p><div class="em-cta-lime">Complete your order</div><p style="font-size:7px;color:#999;margin-top:8px">[Dynamic cart contents here]</p></div></div><div class="em-info"><p class="em-t">"Your cart is giving you a look." -- 1 hour</p><p class="em-d">First nudge. Light, funny. Dynamic cart contents. No discount. Just a reminder with personality. Highest open rate email in the flow.</p><div class="em-tags"><span class="tag t-trigger">1 hour post-abandon</span><span class="tag t-goal">Recovery</span><span class="tag t-revenue">#1 Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-c"><div class="em-num">AC2</div><div class="em-day">+24 hours</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Your gut was<br>so close.</p><p style="font-size:8px;color:#666;margin-top:6px;line-height:1.8">"I replaced my morning juice with this.<br>Genuinely better in every way."<br><span style="font-size:7px;color:#999">-- Jordan L., subscriber</span><br><br>"My kids fight over the Tropical Punch.<br>I hide the Ginger Pear for myself."<br><span style="font-size:7px;color:#999">-- Maya R.</span></p><p style="font-size:8px;color:var(--bk);font-weight:700;margin-top:8px">Real people. Real guts. Real reviews.</p><div class="em-cta-orange">Finish checkout</div></div></div><div class="em-info"><p class="em-t">"Your gut was so close." -- 24 hours + social proof</p><p class="em-d">Social proof layer. Real reviews (swap in actuals). Addresses "is it actually good?" objection. Still no discount.</p><div class="em-tags"><span class="tag t-trigger">24 hours post-abandon</span><span class="tag t-goal">Trust + recovery</span><span class="tag t-revenue">#1 Revenue</span></div></div></div>
+
+<div class="email"><div class="em-mock em-orange"><div class="em-num">AC3</div><div class="em-day">+48 hours</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:16px;font-weight:800;margin-top:auto;text-align:center">Ok fine.<br>10% off.</p><p style="font-size:9px;opacity:.8;margin-top:4px;text-align:center">Use code GUTINSTINCT<br>Your cart expires in 24 hours.</p><div style="background:#fff;color:var(--orange);padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;display:inline-block;margin-top:8px;text-align:center">Complete order -- 10% off</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">After that, your gut's on its own.</p></div><div class="em-info"><p class="em-t">"Ok fine. 10% off." -- 48 hours + incentive</p><p class="em-d">Final push. Discount deployed. "GUTINSTINCT" code = memorable. 24-hour expiry = real urgency. "Ok fine" = reluctant generosity (on-brand). Orange background = action energy.</p><div class="em-tags"><span class="tag t-trigger">48 hours post-abandon</span><span class="tag t-goal">Recovery + conversion</span><span class="tag t-revenue">#1 Revenue</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 13: SUNSET / UNENGAGED -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="always">
+<div class="flow-header">
+<div class="flow-num">13</div>
+<div><div class="flow-title">Sunset / Unengaged</div><div class="flow-sub">Trigger: no open or click in 90 days | 2 emails then suppress</div></div>
+<div class="flow-phase phase-always">ALWAYS-ON</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">90d no engage</div></div>
+<div><div class="label">Emails</div><div class="val">2</div></div>
+<div><div class="label">Action</div><div class="val">Suppress if no engage</div></div>
+<div><div class="label">Goal</div><div class="val">Clean list</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> List hygiene protects your deliverability. These emails are respectful goodbyes -- give them one last chance to stay, then suppress. Never guilt-trip. A smaller, engaged list beats a large dead one every time.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">SU1</td><td style="padding:3px">A: Still there?</td><td style="padding:3px">B: We're about to stop emailing you.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">SU2</td><td style="padding:3px">A: This is the last one.</td><td style="padding:3px">B: Goodbye (unless you click).</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">SU1</div><div class="em-day">Day 90</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">Still there?</p><p style="font-size:8px;color:#666;margin-top:6px">We haven't heard from you in a while.<br><br>No hard feelings if you've moved on.<br>But if you still want to hear from us,<br>just click below.</p><div class="em-cta-lime">Keep me on the list</div><p style="font-size:7px;color:#999;margin-top:8px">If we don't hear back,<br>we'll stop emailing. Promise.</p></div></div><div class="em-info"><p class="em-t">"Still there?" -- First sunset</p><p class="em-d">Clear, honest. One-click to stay. Promise to stop if no response. Respects their inbox.</p><div class="em-tags"><span class="tag t-trigger">90 days no engagement</span><span class="tag t-goal">Re-engage or clean</span></div></div></div>
+
+<div class="email"><div class="em-mock em-d"><div class="em-num">SU2</div><div class="em-day">Day 97</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;color:var(--lime);opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;color:#fff;margin-top:auto;text-align:center">This is the last one.</p><p style="font-size:9px;color:#888;margin-top:4px;text-align:center">We're removing you from our list.<br>Not because we want to.<br>Because we respect your inbox.<br><br>If you change your mind,<br>you can always come back.</p><div style="background:var(--lime);color:#0D0D0D;padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;display:inline-block;margin-top:8px;text-align:center">Wait -- keep me subscribed</div><p style="font-size:7px;color:#555;margin-top:auto;text-align:center">Your Gut Knows.</p></div><div class="em-info"><p class="em-t">"This is the last one." -- Final sunset</p><p class="em-d">Dark background = different feel. Clear finality. One last CTA. If no click, suppress from list. Protects deliverability for engaged subscribers.</p><div class="em-tags"><span class="tag t-trigger">7 days after SU1, no engage</span><span class="tag t-goal">Final chance / suppress</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- FLOW 14: LOYAL CUSTOMER / VIP -->
+<!-- ================================================================ -->
+<div class="flow show" data-phase="always">
+<div class="flow-header">
+<div class="flow-num">14</div>
+<div><div class="flow-title">Loyal Customer / VIP</div><div class="flow-sub">Trigger: milestone dates (3/6/12 months as customer) | 3 emails</div></div>
+<div class="flow-phase phase-always">ALWAYS-ON</div>
+</div>
+<div class="flow-meta">
+<div><div class="label">Trigger</div><div class="val">Date milestones</div></div>
+<div><div class="label">Emails</div><div class="val">3</div></div>
+<div><div class="label">Milestones</div><div class="val">3 / 6 / 12 mo</div></div>
+<div><div class="label">Goal</div><div class="val">Reward + retain</div></div>
+</div>
+<p style="font-size:8px;color:#444;margin-bottom:6px"><strong>Mindset:</strong> These are your best customers. They've stuck around. They deserve to be celebrated -- not with generic loyalty points, but with genuine appreciation that feels like Pheeew. Surprise and delight. Make them feel like insiders, not numbers.</p>
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:10px;margin-bottom:12px">
+<p style="font-size:8px;font-weight:700;color:var(--lime);margin-bottom:4px">A/B SUBJECT LINES</p>
+<table style="width:100%;border-collapse:collapse;font-size:8px;color:#888">
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">VIP1</td><td style="padding:3px">A: 3 months. Your gut approves.</td><td style="padding:3px">B: You've been with us 90 days.</td></tr>
+<tr style="border-bottom:1px solid #1a1a1a"><td style="padding:3px;color:var(--lime)">VIP2</td><td style="padding:3px">A: 6 months. You're officially a regular.</td><td style="padding:3px">B: Half a year of good poops.</td></tr>
+<tr><td style="padding:3px;color:var(--lime)">VIP3</td><td style="padding:3px">A: 1 year. You're gut royalty.</td><td style="padding:3px">B: 365 days. Here's something for you.</td></tr>
+</table>
+</div>
+<div class="emails">
+
+<div class="email"><div class="em-mock em-lime"><div class="em-num">VIP1</div><div class="em-day">3 months</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:14px;font-weight:800;margin-top:auto;text-align:center">3 months.<br>Your gut approves.</p><p style="font-size:9px;opacity:.7;margin-top:4px;text-align:center">You've been with us 90 days.<br>That's ~90 pouches. ~90 good decisions.<br><br>Here's a free pouch on us next order.</p><div class="em-cta-orange" style="margin:8px auto;display:block;width:fit-content">Claim your free pouch</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">Code: GUT90 | auto-applied at checkout</p></div><div class="em-info"><p class="em-t">"3 months. Your gut approves." -- First milestone</p><p class="em-d">Celebrates 90-day milestone. Free pouch = small, delightful reward. "90 good decisions" = affirmation. Auto-applied code = frictionless.</p><div class="em-tags"><span class="tag t-trigger">90 days post first-purchase</span><span class="tag t-goal">Celebrate + retain</span></div></div></div>
+
+<div class="email"><div class="em-mock em-w"><div class="em-num">VIP2</div><div class="em-day">6 months</div><div class="em-brand">PHEEEW</div><div style="margin:auto 0;text-align:center"><p style="font-size:14px;font-weight:800;color:var(--bk)">6 months.<br>You're a regular now.</p><p style="font-size:8px;color:#666;margin-top:6px">Half a year of Pheeew.<br>That's commitment. That's trust.<br>That's a lot of good poops.<br><br>As a thank you:<br>15% off your next order.<br>+ early access to new flavors.</p><div class="em-cta-lime">Shop with 15% off</div><p style="font-size:7px;color:#999;margin-top:8px">Code: HALFYEAR | You earned this.</p></div></div><div class="em-info"><p class="em-t">"You're a regular now." -- 6 month milestone</p><p class="em-d">Bigger reward at 6 months. 15% off + early flavor access = VIP feeling. "You earned this" = no strings attached.</p><div class="em-tags"><span class="tag t-trigger">180 days post first-purchase</span><span class="tag t-goal">Reward + exclusivity</span></div></div></div>
+
+<div class="email"><div class="em-mock em-orange"><div class="em-num">VIP3</div><div class="em-day">12 months</div><p style="font-size:12px;letter-spacing:3px;font-weight:900;opacity:.5;margin-top:20px;text-align:center">PHEEEW</p><p style="font-size:16px;font-weight:800;margin-top:auto;text-align:center">1 year.<br>You're gut royalty.</p><p style="font-size:9px;opacity:.8;margin-top:4px;text-align:center">365 days. 365 pouches (give or take).<br>365 reasons your gut loves you.<br><br>Your reward:<br>Free box on your next renewal.<br>+ founding member status.<br>+ first dibs on everything. Forever.</p><div style="background:#fff;color:var(--orange);padding:6px 16px;border-radius:100px;font-size:8px;font-weight:700;display:inline-block;margin-top:8px;text-align:center">Claim your free box</div><p style="font-size:7px;opacity:.4;margin-top:auto;text-align:center">Thank you. Seriously. Your Gut Knows.</p></div><div class="em-info"><p class="em-t">"1 year. You're gut royalty." -- Annual milestone</p><p class="em-d">Maximum reward. Free box + founding member status + permanent early access. "Thank you. Seriously." drops the humor for a moment of genuine gratitude. Orange background = celebration energy.</p><div class="em-tags"><span class="tag t-trigger">365 days post first-purchase</span><span class="tag t-goal">Celebrate + lifetime retention</span><span class="tag t-revenue">LTV</span></div></div></div>
+
+</div>
+</div>
+
+<!-- ================================================================ -->
+<!-- IMPLEMENTATION NOTES -->
+<!-- ================================================================ -->
+<div style="background:#111;border:1px solid #222;border-radius:8px;padding:20px;margin-top:24px">
+<h2 style="font-size:14px;font-weight:800;color:var(--lime);margin-bottom:12px">IMPLEMENTATION NOTES FOR JASON</h2>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+<div>
+<h3 style="font-size:10px;font-weight:700;color:var(--orange);margin-bottom:6px">KLAVIYO SETUP CHECKLIST</h3>
+<p style="font-size:8px;color:#888;line-height:2">
+1. Create all 14 flows in Klaviyo<br>
+2. Set up Shopify integration (jjffyu-pr.myshopify.com)<br>
+3. Configure webhook events for shipping flow<br>
+4. Set up subscription event triggers (Recharge or Shopify sub)<br>
+5. Create segments: Waitlist, Purchased, Subscriber, Lapsed 30/60/90, VIP 3/6/12mo<br>
+6. Upload brand assets (lime #DAFF00, orange #FF6B35, logo, pouch photos)<br>
+7. Set up A/B testing on Flow 1 Email 1 and Flow 12 Email 1 first<br>
+8. Configure suppression for sunset flow (auto-suppress after SU2 no-click)<br>
+9. Set up dynamic cart content blocks for cart abandonment<br>
+10. Create discount codes: GUTFEELING (15%), GUTINSTINCT (10%), GUT90 (free pouch), HALFYEAR (15%)
+</p>
+</div>
+
+<div>
+<h3 style="font-size:10px;font-weight:700;color:var(--orange);margin-bottom:6px">PRIORITY ORDER</h3>
+<p style="font-size:8px;color:#888;line-height:2">
+<strong style="color:var(--orange)">P0 (launch-blocking):</strong><br>
+Flow 12: Cart Abandonment (highest revenue)<br>
+Flow 1: Pre-Launch Welcome (list building now)<br>
+Flow 6: Shipping/Fulfillment (transactional)<br><br>
+<strong style="color:var(--lime)">P1 (launch week):</strong><br>
+Flow 4: Launch Day<br>
+Flow 5: Post-Purchase Welcome<br>
+Flow 3: Preorder Announcement<br><br>
+<strong style="color:#3498db">P2 (within 2 weeks):</strong><br>
+Flow 7: Post-Delivery Check-In<br>
+Flow 8: Subscription Lifecycle<br>
+Flow 11: Browse Abandonment<br><br>
+<strong style="color:#9b59b6">P3 (within 30 days):</strong><br>
+Flow 2: Pre-Launch Nurture<br>
+Flow 9: Winback<br>
+Flow 10: Referral<br>
+Flow 13: Sunset<br>
+Flow 14: VIP
+</p>
+</div>
+</div>
+
+<div style="margin-top:16px;padding-top:12px;border-top:1px solid #222">
+<h3 style="font-size:10px;font-weight:700;color:var(--orange);margin-bottom:6px">VOICE RULES -- NON-NEGOTIABLE</h3>
+<p style="font-size:8px;color:#888;line-height:2">
+<strong style="color:var(--lime)">DO:</strong> "Your gut thanks you" / "Good food. Better poops." / "Tear. Sip. Done." / "Your Gut Knows."<br>
+<strong style="color:var(--orange)">DON'T:</strong> "Supports digestive health" / "Clinically studied" / "Dietary supplement" / "These statements have not been evaluated by the FDA"<br>
+<strong style="color:var(--lime)">THIS IS FOOD.</strong> Talk about it like food. It's a smoothie. It tastes good. It happens to have fiber and probiotics. That's it.<br>
+<strong style="color:var(--orange)">NEVER:</strong> DSHEA disclaimers, supplement facts panels, health claims, disease claims, structure/function claims.<br>
+<strong style="color:var(--lime)">ALWAYS:</strong> Deadpan. Honest. Warm. A little weird. Never preachy. Never clinical. Never "wellness influencer."<br>
+<strong style="color:var(--orange)">SENDER:</strong> "Alex from Pheeew" for all non-transactional. "Pheeew" for transactional (shipping, payment).
+</p>
+</div>
+
+<div style="margin-top:16px;padding-top:12px;border-top:1px solid #222">
+<h3 style="font-size:10px;font-weight:700;color:var(--orange);margin-bottom:6px">KPI TARGETS</h3>
+<p style="font-size:8px;color:#888;line-height:2">
+Welcome Flow Open Rate: 50%+ (Email 1), 35%+ (Emails 2-8)<br>
+Cart Abandonment Recovery Rate: 10-15%<br>
+Cart Abandonment Revenue: Target $X per recovered cart<br>
+Post-Purchase Review Rate: 15%+ of customers leave a review<br>
+Referral Conversion: 5%+ of customers share their link<br>
+Subscription Retention: 85%+ month-over-month<br>
+Sunset Suppression: Clean 10-20% of list quarterly<br>
+Overall List Health: 30%+ engaged segment (opened/clicked in 90 days)
+</p>
+</div>
+</div>
+
+</div>
+
+<script>
+function ff(p){
+document.querySelectorAll('.fbtn').forEach(b=>b.classList.remove('on'));
+event.target.classList.add('on');
+document.querySelectorAll('.flow').forEach(f=>{
+if(p==='all'){f.classList.add('show')}
+else{f.classList.toggle('show',f.dataset.phase===p)}
+})
+}
+</script>
+
+</body>
+</html>
